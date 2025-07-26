@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ワープドライブ・エネルギーシミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://css.gg/css?=" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #0f172a; /* slate-900 */
+            color: #e2e8f0; /* slate-200 */
+        }
+        .glassmorphism {
+            background: rgba(30, 41, 59, 0.6); /* slate-800 with opacity */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(51, 65, 85, 0.5); /* slate-700 with opacity */
+        }
+        /* カスタムスライダーのスタイル */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #334155; /* slate-700 */
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #38bdf8; /* sky-400 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #0f172a; /* slate-900 */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #38bdf8; /* sky-400 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #0f172a; /* slate-900 */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-6xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-sky-400">ワープドライブ・エネルギーシミュレーター</h1>
+            <p class="mt-2 text-slate-400">アルクビエレ・ドライブの物理学を探る</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <!-- コントロールパネル -->
+            <div class="lg:col-span-2 p-6 rounded-2xl glassmorphism">
+                <h2 class="text-2xl font-bold mb-6 border-b-2 border-slate-700 pb-2 text-sky-400">パラメータ設定</h2>
+
+                <!-- ドライブモデル選択 -->
+                <div class="mb-6">
+                    <label class="block text-lg font-medium mb-2">ドライブモデル</label>
+                    <div class="flex bg-slate-900 rounded-lg p-1">
+                        <button id="alcubierreBtn" class="w-1/2 p-2 rounded-md text-sm font-semibold transition-colors bg-sky-500 text-white">アルクビエレ</button>
+                        <button id="subluminalBtn" class="w-1/2 p-2 rounded-md text-sm font-semibold transition-colors text-slate-300">サブリュミナル</button>
+                    </div>
+                    <p id="modelDescription" class="text-xs text-slate-400 mt-2 h-10">
+                        提唱された当初の、莫大なエネルギーを必要とするモデル。
+                    </p>
+                </div>
+
+                <!-- パラメータスライダー -->
+                <div class="space-y-6">
+                    <div>
+                        <label for="velocity" class="block text-lg font-medium mb-1">見かけの速度 (v)</label>
+                        <input type="range" id="velocity" min="0.1" max="10" step="0.1" value="1" class="w-full">
+                        <div class="text-right text-sky-300 font-mono"><span id="velocityValue">1.0</span> c (光速倍)</div>
+                    </div>
+                    <div>
+                        <label for="radius" class="block text-lg font-medium mb-1">ワープバブル半径 (R)</label>
+                        <input type="range" id="radius" min="10" max="200" step="5" value="50" class="w-full">
+                        <div class="text-right text-sky-300 font-mono"><span id="radiusValue">50</span> m</div>
+                    </div>
+                    <div>
+                        <label for="thickness" class="block text-lg font-medium mb-1">ワープバブル壁厚 (σ)</label>
+                        <input type="range" id="thickness" min="1e-17" max="1e-15" step="1e-18" value="1e-16" class="w-full">
+                         <div class="text-right text-sky-300 font-mono">
+                            <span id="thicknessValue">1.00e-16</span> m 
+                            <span class="text-xs text-slate-400">(プランク長 ~1.6e-35 m)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- エネルギー表示 -->
+                <div class="mt-8 pt-6 border-t-2 border-slate-700">
+                    <h3 class="text-xl font-bold text-sky-400">計算結果</h3>
+                    <div class="mt-4 p-4 bg-slate-900 rounded-lg">
+                        <p class="text-sm text-slate-400">必要とされる負のエネルギー</p>
+                        <p id="energyOutput" class="text-2xl font-bold text-red-400 break-words">-</p>
+                        <p id="energyComparison" class="text-xs text-slate-400 mt-1">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 可視化エリア -->
+            <div class="lg:col-span-3 p-2 rounded-2xl glassmorphism flex flex-col items-center justify-center min-h-[400px] lg:min-h-0">
+                <h2 class="text-2xl font-bold mb-4 text-center text-sky-400">時空の歪み (リアルタイム)</h2>
+                <canvas id="warpCanvas" class="w-full rounded-lg"></canvas>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- DOM要素の取得 ---
+        const velocitySlider = document.getElementById('velocity');
+        const radiusSlider = document.getElementById('radius');
+        const thicknessSlider = document.getElementById('thickness');
+        
+        const velocityValue = document.getElementById('velocityValue');
+        const radiusValue = document.getElementById('radiusValue');
+        const thicknessValue = document.getElementById('thicknessValue');
+        
+        const energyOutput = document.getElementById('energyOutput');
+        const energyComparison = document.getElementById('energyComparison');
+        
+        const alcubierreBtn = document.getElementById('alcubierreBtn');
+        const subluminalBtn = document.getElementById('subluminalBtn');
+        const modelDescription = document.getElementById('modelDescription');
+        
+        const canvas = document.getElementById('warpCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- 物理定数 ---
+        const C = 299792458; // 光速 (m/s)
+        const G = 6.67430e-11; // 万有引力定数 (m^3 kg^-1 s^-2)
+        const JUPITER_MASS = 1.898e27; // 木星の質量 (kg)
+        const SUN_MASS = 1.989e30; // 太陽の質量 (kg)
+
+        // --- シミュレーターの状態 ---
+        let state = {
+            model: 'alcubierre', // 'alcubierre' or 'subluminal'
+            v: 1.0,  // 光速の倍数
+            R: 50,   // メートル
+            sigma: 1e-16 // メートル
+        };
+        
+        // --- アニメーション用変数 ---
+        let animationFrameId;
+        let time = 0;
+
+        // --- 計算ロジック ---
+        function calculateNegativeEnergy() {
+            const vs = state.v * C;
+            const R = state.R;
+            const sigma = state.sigma;
+
+            // アルクビエレ・ドライブのエネルギー計算式（簡略版）
+            // E_neg ≈ - (v_s^2 * R^2) / G*σ
+            // より物理的な直感に近いスケール則に基づき式を修正。
+            const energyJoulesRaw = - (Math.pow(vs, 2) * Math.pow(R, 2)) / (G * sigma);
+
+            // 巨大になりすぎるため、表示用の調整係数を乗算
+            let energyJoules = energyJoulesRaw * 1e-30;
+
+            if (state.model === 'subluminal') {
+                energyJoules /= 1e12; // 1兆分の1に削減
+            }
+            
+            return energyJoules;
+        }
+
+        // --- UI更新ロジック (数値部分のみ) ---
+        function updateValues() {
+            state.v = parseFloat(velocitySlider.value);
+            state.R = parseInt(radiusSlider.value);
+            state.sigma = parseFloat(thicknessSlider.value);
+
+            velocityValue.textContent = state.v.toFixed(1);
+            radiusValue.textContent = state.R;
+            thicknessValue.textContent = state.sigma.toExponential(2);
+            
+            const energy = calculateNegativeEnergy();
+            const energyInKg = Math.abs(energy) / (C * C);
+
+            if (isFinite(energy)) {
+                energyOutput.textContent = `${energy.toExponential(3)} J`;
+            } else {
+                 energyOutput.textContent = `無限大`;
+            }
+
+            if (isFinite(energyInKg)) {
+                if (energyInKg > SUN_MASS) {
+                    energyComparison.textContent = `(太陽質量の ${ (energyInKg / SUN_MASS).toExponential(2)} 倍に相当)`;
+                } else if (energyInKg > JUPITER_MASS) {
+                    energyComparison.textContent = `(木星質量の ${ (energyInKg / JUPITER_MASS).toExponential(2)} 倍に相当)`;
+                } else {
+                     energyComparison.textContent = `(質量換算: ${energyInKg.toExponential(2)} kg)`;
+                }
+            } else {
+                energyComparison.textContent = "計算不能な領域です。";
+            }
+        }
+
+        // --- キャンバス描画とアニメーションのメインループ ---
+        function animationLoop() {
+            time += 0.03; // アニメーションの速度を制御
+
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.clearRect(0, 0, width, height);
+            
+            const bubbleCenterX = width / 2;
+            const bubbleCenterY = height / 2;
+            // バブル半径を船体半径と連動させる
+            const bubbleRadius = Math.max(20, state.R * 0.4); 
+            const distortionFactor = state.v / 10;
+
+            // 1. 背景の時空グリッドを描画
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.7)';
+            ctx.lineWidth = 1;
+            const gridSize = 30;
+            for (let i = 0; i < width / gridSize; i++) {
+                const x = i * gridSize;
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+            }
+            for (let i = 0; i < height / gridSize; i++) {
+                const y = i * gridSize;
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+            }
+
+            // 2. 歪んだ時空を動的に描画
+            const influenceRadius = bubbleRadius * 3.5;
+            // 前方の収縮 (進行方向は右)
+            drawDistortedGrid(bubbleCenterX, bubbleCenterY, bubbleRadius, influenceRadius, -distortionFactor, -Math.PI / 2, Math.PI / 2, time);
+            // 後方の膨張
+            drawDistortedGrid(bubbleCenterX, bubbleCenterY, bubbleRadius, influenceRadius, distortionFactor, Math.PI / 2, 3 * Math.PI / 2, time);
+
+
+            // 3. ワープバブル自体を描画
+            // 船体
+            ctx.fillStyle = '#38bdf8'; // sky-400
+            ctx.beginPath();
+            ctx.ellipse(bubbleCenterX, bubbleCenterY, bubbleRadius * 0.2, bubbleRadius * 0.1, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.strokeStyle = '#e0f2fe'; // sky-100
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // バブルの境界
+            ctx.strokeStyle = '#f87171'; // red-400
+            ctx.lineWidth = 3 + Math.sin(time * 5) * 1.5; // パルスの効果
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.arc(bubbleCenterX, bubbleCenterY, bubbleRadius, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            animationFrameId = requestAnimationFrame(animationLoop);
+        }
+        
+        function drawDistortedGrid(cx, cy, bubbleR, influenceR, distortion, startAngle, endAngle, animTime) {
+            ctx.strokeStyle = 'rgba(107, 114, 128, 0.9)'; // gray-500
+            ctx.lineWidth = 1.5;
+            const lines = 20;
+
+            for (let i = 0; i <= lines; i++) {
+                const angle = startAngle + (endAngle - startAngle) * (i / lines);
+                
+                ctx.beginPath();
+                for (let r = bubbleR * 0.8; r <= influenceR; r += 3) {
+                    const normalizedR = (r - bubbleR) / (influenceR - bubbleR);
+                    // sin波に時間と距離の要素を加えて波紋のような効果を出す
+                    const angleDistortion = distortion * Math.sin(Math.PI * normalizedR - animTime * 3);
+                    
+                    const finalAngle = angle + angleDistortion;
+                    const x = cx + r * Math.cos(finalAngle);
+                    const y = cy + r * Math.sin(finalAngle);
+                    
+                    if (r <= bubbleR * 0.8 + 3) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+
+
+        // --- イベントリスナーの設定 ---
+        [velocitySlider, radiusSlider, thicknessSlider].forEach(slider => {
+            slider.addEventListener('input', updateValues);
+        });
+        
+        alcubierreBtn.addEventListener('click', () => {
+            state.model = 'alcubierre';
+            alcubierreBtn.classList.add('bg-sky-500', 'text-white');
+            alcubierreBtn.classList.remove('text-slate-300');
+            subluminalBtn.classList.remove('bg-sky-500', 'text-white');
+            subluminalBtn.classList.add('text-slate-300');
+            modelDescription.textContent = "提唱された当初の、莫大なエネルギーを必要とするモデル。";
+            updateValues();
+        });
+
+        subluminalBtn.addEventListener('click', () => {
+            state.model = 'subluminal';
+            subluminalBtn.classList.add('bg-sky-500', 'text-white');
+            subluminalBtn.classList.remove('text-slate-300');
+            alcubierreBtn.classList.remove('bg-sky-500', 'text-white');
+            alcubierreBtn.classList.add('text-slate-300');
+            modelDescription.textContent = "バブル形状を最適化し、エネルギー要件を緩和した改良モデル。";
+            updateValues();
+        });
+
+        // --- 初期化 ---
+        function initialize() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientWidth > 768 ? 500 : container.clientWidth * 0.9;
+            updateValues();
+            // アニメーションループを開始
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            animationLoop();
+        }
+        
+        window.addEventListener('DOMContentLoaded', initialize);
+        window.addEventListener('resize', initialize);
+
+    </script>
+</body>
+</html>
