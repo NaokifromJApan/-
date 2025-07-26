@@ -161,22 +161,20 @@
 
         // --- 計算ロジック ---
         function calculateNegativeEnergy() {
-            const vs = state.v * C;
+            const v = state.v;
             const R = state.R;
             const sigma = state.sigma;
 
-            // アルクビエレ・ドライブのエネルギー計算式（簡略版）
-            // E_neg ≈ - (v_s^2 * R^2) / G*σ
-            // より物理的な直感に近いスケール則に基づき式を修正。
-            const energyJoulesRaw = - (Math.pow(vs, 2) * Math.pow(R, 2)) / (G * sigma);
+            // Alcubierre/White論文に基づくエネルギー推定式
+            // E ≈ - (c^4 / G) × v × R^2 / σ
+            // v: 光速倍数, R: m, σ: m
+            const c4 = Math.pow(C, 4);
+            let energyJoules = - (c4 / G) * v * Math.pow(R, 2) / sigma;
 
-            // 巨大になりすぎるため、表示用の調整係数を乗算
-            let energyJoules = energyJoulesRaw * 1e-30;
-
+            // サブリュミナルモデルはWhite論文等で10^2〜10^4倍程度の削減が示唆される
             if (state.model === 'subluminal') {
-                energyJoules /= 1e12; // 1兆分の1に削減
+                energyJoules /= 1e4; // 1万分の1に削減
             }
-            
             return energyJoules;
         }
 
